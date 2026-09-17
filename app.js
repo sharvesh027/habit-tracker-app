@@ -766,9 +766,55 @@ document.addEventListener('DOMContentLoaded', init);
 // This is what makes the browser offer "Install app" / "Add to Home
 // Screen", and lets the app open instantly (even offline) afterward.
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch((err) => {
+  window.addEventListener('load', async () => {
+    try {
+      const registration = await navigator.serviceWorker.register('sw.js');
+      // Push notifications need the service worker to be ready first.
+      await setupPushNotifications(registration);
+    } catch (err) {
       console.error('Service worker registration failed:', err);
-    });
+    }
   });
+}
+
+// ---------- PUSH NOTIFICATIONS ----------
+// Asks for permission, gets this device's unique push "address"
+// (the FCM token), and saves it to your Sheet so the backend knows
+// where to send checklist reminders.
+async function setupPushNotifications(registration) {
+  if (!('Notification' in window) || !('PushManager' in window)) {
+    return; // this browser doesn't support push at all
+  }
+
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      alert('Notification permission was not granted (status: ' + permission + '). Reminders won\'t be able to notify you until this is allowed in your browser/phone settings.');
+      return;
+    }
+
+    const firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
+    const messaging = firebase.messaging(firebaseApp);
+
+    const token = await messaging.getToken({
+      vapidKey: VAPID_KEY,
+      serviceWorkerRegistration: registration,
+    });
+
+    if (token) {
+      await apiPost({ action: 'saveFcmToken', token });
+    }
+
+    // Handle a push arriving while the app is OPEN and in focus —
+    // Firebase doesn't auto-show a native notification in that case,
+    // so we do it ourselves.
+    messaging.onMessage((payload) => {
+      const title = payload.notification?.title || 'Reminder';
+      const body = payload.notification?.body || '';
+      registration.showNotification(title, { body, icon: 'icons/icon-192.png' });
+    });
+  } catch (err) {
+    console.error('Push notification setup failed:', err);
+    alert('Push notification setup failed:\n\n' + err.message);
+  }
 }

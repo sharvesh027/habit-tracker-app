@@ -2,7 +2,27 @@
 // SERVICE WORKER — makes the app installable and usable offline
 // ============================================================
 
-const CACHE_NAME = 'habit-tracker-v1';
+const CACHE_NAME = 'habit-tracker-v2';
+
+// ---------- PUSH NOTIFICATIONS (Firebase Cloud Messaging) ----------
+// This section handles a push arriving while the app is CLOSED or
+// in the background — the only way notifications work then is via
+// the service worker, which stays alive even with no tab open.
+importScripts('https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.14.0/firebase-messaging-compat.js');
+importScripts('./config.js'); // brings in FIREBASE_CONFIG
+
+firebase.initializeApp(FIREBASE_CONFIG);
+const messaging = firebase.messaging();
+
+messaging.onBackgroundMessage((payload) => {
+  const title = payload.notification?.title || 'Reminder';
+  const body = payload.notification?.body || '';
+  self.registration.showNotification(title, {
+    body,
+    icon: 'icons/icon-192.png',
+  });
+});
 
 // The "app shell" — everything needed to open the app itself,
 // even with no internet. Your actual habit/checklist DATA still
