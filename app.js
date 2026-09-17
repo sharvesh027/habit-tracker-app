@@ -768,9 +768,12 @@ document.addEventListener('DOMContentLoaded', init);
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
-      const registration = await navigator.serviceWorker.register('sw.js');
-      // Push notifications need the service worker to be ready first.
-      await setupPushNotifications(registration);
+      await navigator.serviceWorker.register('sw.js');
+      // .ready specifically waits until a service worker is ACTIVE for
+      // this page, not just registered — fixes a race condition where
+      // push setup ran before the worker had finished starting up.
+      const activeRegistration = await navigator.serviceWorker.ready;
+      await setupPushNotifications(activeRegistration);
     } catch (err) {
       console.error('Service worker registration failed:', err);
     }
