@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Habit Tracker</title>
+
+<!-- PWA: installable + themed status bar -->
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#0D1512" />
+<link rel="icon" href="icons/icon-192.png" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Habits" />
+
+<link rel="stylesheet" href="style.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <div class="app">
+
+    <!-- ===== HEADER ===== -->
+    <header class="app-header">
+      <div class="date-block">
+        <div class="day-name" id="dayName">Tuesday</div>
+        <div class="date-number" id="dateNumber">15 Sep</div>
+      </div>
+      <div class="streak-block">
+        <div class="streak-count" id="todayCount">0</div>
+        <div class="streak-label" id="todayTotal">of 0 done</div>
+      </div>
+    </header>
+
+    <!-- ===== WORM GRAPH ===== -->
+    <section class="worm-section">
+      <h2 class="section-label">Last 14 days</h2>
+      <div id="wormGraph"></div>
+    </section>
+
+    <!-- ===== TAB NAV ===== -->
+    <nav class="tab-nav">
+      <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+      <button class="tab-btn" data-tab="checklist">Checklist</button>
+      <button class="settings-btn" id="settingsBtn" aria-label="Colors">🎨</button>
+    </nav>
+
+    <!-- ===== DASHBOARD TAB ===== -->
+    <main class="tab-panel active" id="dashboard-panel">
+
+      <ul class="activity-list" id="activityList">
+        <!-- Activity rows injected here by app.js -->
+      </ul>
+
+      <div class="empty-state" id="emptyState" hidden>
+        <p>No activities yet.</p>
+        <p class="empty-sub">Tap "+ Add activity" to start tracking something.</p>
+      </div>
+
+      <button class="add-activity-btn" id="addActivityBtn">+ Add activity</button>
+
+    </main>
+
+    <!-- ===== CHECKLIST TAB ===== -->
+    <main class="tab-panel" id="checklist-panel">
+
+      <ul class="checklist-list" id="checklistList">
+        <!-- Checklist rows injected here by app.js -->
+      </ul>
+
+      <div class="empty-state" id="checklistEmptyState" hidden>
+        <p>Nothing on your checklist.</p>
+        <p class="empty-sub">Tap "+ Add task" for a one-off thing with a due date.</p>
+      </div>
+
+      <button class="add-activity-btn" id="addChecklistBtn">+ Add task</button>
+
+    </main>
+
+  </div>
+
+  <!-- ===== COLOR SETTINGS ===== -->
+  <div class="detail-overlay" id="settingsOverlay" hidden>
+    <div class="detail-header">
+      <button class="detail-back-btn" id="settingsBackBtn">&larr; Back</button>
+      <h2 class="detail-title">Colors</h2>
+    </div>
+
+    <p class="settings-hint">Tap any swatch to change it. Changes preview instantly and save automatically.</p>
+
+    <div class="color-setting-list" id="colorSettingList">
+      <!-- Rows injected by app.js -->
+    </div>
+
+    <button class="reset-theme-btn" id="resetThemeBtn">Reset to default theme</button>
+  </div>
+
+  <!-- ===== ACTIVITY DETAIL VIEW (calendar heatmap) ===== -->
+  <div class="detail-overlay" id="detailOverlay" hidden>
+    <div class="detail-header">
+      <button class="detail-back-btn" id="detailBackBtn">&larr; Back</button>
+      <h2 class="detail-title" id="detailActivityName">Activity</h2>
+    </div>
+    <div class="detail-stats" id="detailStats"></div>
+    <div class="heatmap-legend">
+      <span>Less</span>
+      <div class="legend-swatch empty"></div>
+      <div class="legend-swatch filled"></div>
+      <span>More</span>
+    </div>
+    <div class="heatmap-scroll">
+      <div class="heatmap-container" id="heatmapContainer"></div>
+    </div>
+  </div>
+
+  <!-- ===== ADD / EDIT CHECKLIST MODAL ===== -->
+  <div class="modal-overlay" id="checklistModal" hidden>
+    <div class="modal">
+      <h2 id="checklistModalTitle">Add task</h2>
+
+      <label class="modal-label">Task</label>
+      <input type="text" id="checklistTaskInput" placeholder="e.g. Renew gym membership" maxlength="80" autocomplete="off" />
+
+      <label class="modal-label">Due date</label>
+      <input type="date" id="checklistDueDateInput" autocomplete="off" />
+
+      <label class="modal-label">Reminder time (optional)</label>
+      <input type="time" id="checklistReminderTimeInput" autocomplete="off" />
+
+      <label class="modal-label">Reminder message (optional)</label>
+      <input type="text" id="checklistReminderMsgInput" placeholder="Defaults to the task name" maxlength="100" autocomplete="off" />
+
+      <div class="modal-actions">
+        <button class="btn-secondary" id="deleteChecklistBtn" hidden>Delete</button>
+        <div class="modal-actions-right">
+          <button class="btn-text" id="cancelChecklistModalBtn">Cancel</button>
+          <button class="btn-primary" id="saveChecklistBtn">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ADD / EDIT ACTIVITY MODAL ===== -->
+  <div class="modal-overlay" id="activityModal" hidden>
+    <div class="modal">
+      <h2 id="modalTitle">Add activity</h2>
+      <input type="text" id="activityNameInput" placeholder="e.g. Drink 2L water" maxlength="60" autocomplete="off" />
+      <div class="modal-actions">
+        <button class="btn-secondary" id="deleteActivityBtn" hidden>Delete</button>
+        <div class="modal-actions-right">
+          <button class="btn-text" id="cancelModalBtn">Cancel</button>
+          <button class="btn-primary" id="saveActivityBtn">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
